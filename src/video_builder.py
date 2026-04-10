@@ -13,8 +13,8 @@ OUTPUT_DIR = Path("output/dev")
 SCRIPT_PATH = OUTPUT_DIR / "script.json"
 THUMB_PATH = OUTPUT_DIR / "thumbnail.png"
 
-VOICE_EN_PATH = OUTPUT_DIR / "voiceover_en.mp3"
-VOICE_RU_PATH = OUTPUT_DIR / "voiceover_ru.mp3"
+VOICE_EN_PATH = OUTPUT_DIR / "voiceover_en.wav"
+VOICE_RU_PATH = OUTPUT_DIR / "voiceover_ru.wav"
 
 FINAL_EN_PATH = OUTPUT_DIR / "final_video_en.mp4"
 FINAL_RU_PATH = OUTPUT_DIR / "final_video_ru.mp4"
@@ -107,12 +107,11 @@ def build_video(lang: str) -> None:
     total_scene_duration = get_total_scene_duration(scenes)
 
     audio = AudioFileClip(str(audio_path))
+    print("Audio duration:", audio.duration)
+
     final_duration = min(total_scene_duration, audio.duration)
 
-    # 1) один общий фон на всю длину
     background = make_background_clip(str(THUMB_PATH), final_duration)
-
-    # 2) captions поверх по таймингам
     overlay_clips = [background]
 
     for scene in scenes:
@@ -126,10 +125,8 @@ def build_video(lang: str) -> None:
         if scene_duration <= 0:
             continue
 
-        caption = scene["caption"]
-
         caption_clip = make_caption_clip(
-            text=caption,
+            text=scene["caption"],
             start=start_sec,
             duration=scene_duration,
         )
@@ -140,14 +137,24 @@ def build_video(lang: str) -> None:
         size=VIDEO_SIZE,
     ).with_duration(final_duration)
 
-    final_video = final_video.with_audio(audio)
+    # важный момент: подрезаем/ставим аудио явно
+    final_audio = audio.subclipped(0, final_duration)
+    final_video = final_video.with_audio(final_audio)
 
     final_video.write_videofile(
         str(output_path),
         fps=30,
         codec="libx264",
+        audio=True,
         audio_codec="aac",
+        audio_fps=44100,
+        temp_audiofile=str(OUTPUT_DIR / "temp_audio.m4a"),
+        remove_temp=True,
     )
+
+    audio.close()
+    final_audio.close()
+    final_video.close()
 
     print(f"\n✅ Video saved to: {output_path}")
 
