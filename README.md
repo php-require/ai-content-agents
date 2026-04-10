@@ -1,52 +1,55 @@
-# Shorts Agent
+# 🚀 Shorts Agent
 
-AI-powered Python pipeline for generating YouTube Shorts content.
+AI-powered pipeline for generating YouTube Shorts videos (script → voice → image → final video)
 
 ---
 
-## 🚀 Overview | Обзор
+## 🧠 Overview | Обзор
 
 EN:  
-This project builds a full short-form video pipeline using OpenAI:
-- script generation
-- thumbnail generation
-- voice generation (EN / RU)
-- final video rendering
+This project builds a **fully automated AI pipeline** for short-form video content:
 
-RU:  
-Это пайплайн для создания коротких видео (Shorts):
-- генерация сценария
-- генерация превью (картинки)
-- озвучка (английская / русская)
-- сборка финального видео
+- script generation (OpenAI)
+- thumbnail prompt + image generation
+- voice generation via **F5-TTS (local, free)**
+- smart chunking + audio merging
+- final video rendering (MoviePy)
+
+No paid TTS. No external voice services. Everything runs locally except text generation.
 
 ---
 
 ## 📁 Project Structure
 
-src/
-  agents/
-    script_agent.py
-    image_prompt_agent.py
-    image_generator_agent.py
+shorts-agent/
 
-  prompts/
-    it_shorts_prompt.py
-    thumbnail_prompt.py
+├── assets/  
+│   └── voice_clean.wav  
 
-  schemas/
-    it_shorts_schema.py
-    thumbnail_schema.py
+├── output/  
+│   └── dev/  
+│       ├── script.json  
+│       ├── thumbnail_prompt.json  
+│       ├── thumbnail.png  
+│       ├── voice_chunk_1.wav  
+│       ├── voice_chunk_2.wav  
+│       ├── ...  
+│       ├── voiceover_en.wav  
+│       └── final_video_en.mp4  
 
-  utils/
-    file_utils.py
-
-  tools/
-    list_models.py
-
-  pipeline.py
-  tts_generator.py
-  video_builder.py
+├── src/  
+│   ├── agents/  
+│   │   ├── script_agent.py  
+│   │   ├── image_prompt_agent.py  
+│   │   └── image_generator_agent.py  
+│   │  
+│   ├── prompts/  
+│   ├── schemas/  
+│   ├── utils/  
+│   │  
+│   ├── pipeline.py  
+│   ├── tts_generator.py  
+│   └── video_builder.py  
 
 ---
 
@@ -57,146 +60,180 @@ cd shorts-agent
 
 python -m venv .venv  
 
-Windows:
+Windows:  
 .venv\Scripts\activate  
 
 pip install -r requirements.txt  
 
-Create .env:
+---
 
-OPENAI_API_KEY=your_api_key_here
+## 🔑 .env Configuration
+
+OPENAI_API_KEY=your_api_key_here  
+
+F5_MODEL=F5TTS_v1_Base  
+F5_REF_AUDIO=assets/voice_clean.wav  
+F5_REF_TEXT=Hello, this is a clean reference voice sample for text to speech generation.  
 
 ---
 
-## 📂 Output
+## 🎤 Voice System (F5-TTS)
 
-output/dev/
-  script.json
-  thumbnail_prompt.json
-  thumbnail.png
-  voiceover_en.mp3
-  voiceover_ru.mp3
-  final_video_en.mp4
-  final_video_ru.mp4
+- Fully local  
+- No cost per generation  
+- Uses reference audio + text  
+- Generates voice in chunks for stability  
 
----
+### ⚠️ Important
 
-# 🧠 1. Script / Image Pipeline
+Reference audio must be:
 
-Run:
-
-python pipeline.py
-
-Commands:
-
-Script only:
-python pipeline.py
-
-Full pipeline (script + thumbnail + image):
-python pipeline.py -i
-
-Flag:
--i → включает генерацию картинки
+- clean voice (no noise)  
+- single speaker  
+- 5–10 seconds  
+- calm tone (no эмоции, крики)  
+- must match F5_REF_TEXT  
 
 ---
 
-# 🎤 2. Voice Generator
+## 🔁 Pipeline Flow
 
-Run:
-
-python tts_generator.py
-
-Commands:
-
-English only:
-python tts_generator.py -er
-
-Russian only:
-python tts_generator.py -rr
-
-Both:
-python tts_generator.py
+Script → Voice (chunked) → Merge → Image → Video  
 
 ---
 
-## 💰 Request Logic
+# 🚀 How to Run
 
-EN (-er):
-- rewrite
-- TTS  
-= 2 запроса
+## 🔥 Full Pipeline (recommended)
 
-RU (-rr):
-- translate
-- rewrite
-- TTS  
-= 3 запроса
+python src/pipeline.py -i  
 
-Both:
-- EN rewrite + TTS
-- RU translate + rewrite + TTS  
-= 5 запросов
+This generates:
+
+- script  
+- thumbnail prompt  
+- thumbnail image  
+- voice chunks  
+- merged voice file  
 
 ---
 
-# 🎬 3. Video Builder
+## 🎬 Build Final Video
 
-Run:
+python src/video_builder.py -e  
 
-python video_builder.py
+Output:
 
-Commands:
-
-English video:
-python video_builder.py -e
-
-Russian video:
-python video_builder.py -r
-
-Both:
-python video_builder.py
+output/dev/final_video_en.mp4  
 
 ---
 
-## ⚠️ Important
+# 🧠 How Voice Works
 
-video_builder.py:
-- не использует OpenAI API
-- работает локально (moviepy + ffmpeg)
+Instead of generating one long audio:
 
----
+- text is split into chunks  
+- each chunk → separate .wav  
+- then merged into one final audio  
 
-## 🔁 Recommended Workflows
+Example:
 
-🔥 Быстрый тест (дешево):
-python pipeline.py
-
-🔥 С картинкой:
-python pipeline.py -i
-
-🔥 EN видео:
-python pipeline.py -i  
-python tts_generator.py -er  
-python video_builder.py -e  
-
-🔥 RU видео:
-python pipeline.py -i  
-python tts_generator.py -rr  
-python video_builder.py -r  
-
-🔥 Полный пайплайн:
-python pipeline.py -i  
-python tts_generator.py  
-python video_builder.py  
+voice_chunk_1.wav  
+voice_chunk_2.wav  
+voice_chunk_3.wav  
+→ voiceover_en.wav  
 
 ---
 
-## 🛠 Tech
+# ⚙️ Chunking Logic
 
-- Python
-- OpenAI API
-- MoviePy
-- Pillow
-- imageio-ffmpeg
-- JSON Schema
-- python-dotenv
+- ~120–180 characters per chunk  
+- prevents F5 crashes  
+- keeps voice natural  
+
+---
+
+# 🎬 Video Builder
+
+- MoviePy based  
+- caption overlay  
+- smooth zoom animation  
+- attaches merged audio  
+- exports final mp4  
+
+---
+
+## ⚠️ Common Issues
+
+### ❌ No sound in video
+
+Check:
+
+- voiceover_en.wav exists  
+- audio duration is not 0  
+- MoviePy uses with_audio()  
+- ffmpeg installed  
+
+---
+
+### ❌ F5 crashes
+
+Fix:
+
+- reduce chunk size  
+- clean reference audio  
+- match reference text  
+
+---
+
+### ❌ Weird voice / emotion spikes
+
+Cause:
+
+- bad reference audio  
+
+Fix:
+
+- record clean voice sample  
+
+---
+
+# 🔥 Recommended Workflow
+
+## Fast test
+
+python src/pipeline.py  
+
+---
+
+## Full generation
+
+python src/pipeline.py -i  
+python src/video_builder.py -e  
+
+---
+
+# 🛠 Tech Stack
+
+- Python  
+- OpenAI API  
+- F5-TTS (local)  
+- MoviePy  
+- FFmpeg  
+- Pillow  
+- python-dotenv  
+
+---
+
+# 💡 Key Idea
+
+This is not just a generator.
+
+It is a **content factory**:
+
+- scalable  
+- cheap  
+- automatable  
+- ready for YouTube Shorts / TikTok  
+
+---
